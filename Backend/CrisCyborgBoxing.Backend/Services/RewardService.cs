@@ -1,11 +1,13 @@
+using System.Numerics;
+using System.Text;
 using CrisCyborgBoxing.Backend.Configuration;
 using CrisCyborgBoxing.Backend.Data;
 using CrisCyborgBoxing.Backend.Models;
+using Microsoft.EntityFrameworkCore;
+using Nethereum.Hex.HexConvertors.Extensions;
+using Nethereum.Signer;
+using Nethereum.Util;
 using Nethereum.Web3;
-using Nethereum.Web3.Accounts;
-using Nethereum.StandardTokenABI;
-using System.Numerics;
-using Nethereum.RPC.Eth.DTOs;
 
 namespace CrisCyborgBoxing.Backend.Services;
 
@@ -18,8 +20,27 @@ public interface IRewardService
     Task RetryFailedRewardsAsync();
 }
 
+/// <summary>
+/// Issues Arcade1870 (ARC) token rewards using the same non-custodial pattern
+/// as Crypto Chess: a dedicated reward signer produces an EIP-712 signature
+/// authorizing the player to claim ARC directly from the shared, pre-funded
+/// Arcade1870RewardVault contract. The player submits the claim transaction
+/// themselves and pays their own gas - this backend never holds ARC funds or
+/// a custodial transfer key.
+/// </summary>
 public class RewardService : IRewardService
 {
+    private const string ClaimTypeHash =
+        "Claim(address recipient,uint256 amount,uint256 nonce,uint256 deadline)";
+    private const string DomainTypeHash =
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
+    private const string VaultDomainName = "Arcade1870RewardVault";
+    private const string VaultDomainVersion = "1";
+
+    private static readonly string MinimalErc20Abi = @"[
+        { 'constant': true, 'inputs': [{'name': '_owner', 'type': 'address'}], 'name': 'balanceOf', 'outputs': [{'name': 'balance', 'type': 'uint256'}], 'type': 'function' }
+    ]".Replace('\'', '"');
+
     private readonly AppDbContext _dbContext;
     private readonly BlockchainConfig _blockchainConfig;
     private readonly ILogger<RewardService> _logger;
@@ -34,7 +55,7 @@ public class RewardService : IRewardService
         _blockchainConfig = blockchainConfig;
         _logger = logger;
 
-        // Initialize Web3 with RPC endpoint
+        // Initialize Web3 with RPC endpoint for read-only balance lookups.
         _web3 = new Web3(_blockchainConfig.RpcUrl);
     }
 
@@ -46,6 +67,13 @@ public class RewardService : IRewardService
             if (player == null)
             {
                 _logger.LogError($"Player {playerId} not found");
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(_blockchainConfig.RewardVaultAddress) ||
+                string.IsNullOrEmpty(_blockchainConfig.RewardSignerPrivateKey))
+            {
+                _logger.LogError("Arcade1870RewardVault is not configured (missing vault address or reward signer key)");
                 return null;
             }
 
@@ -63,29 +91,17 @@ public class RewardService : IRewardService
             _dbContext.Rewards.Add(reward);
             await _dbContext.SaveChangesAsync();
 
-            // Distribute token via Nethereum
-            var txHash = await TransferTokenAsync(player.MetaMaskAddress, amount);
+            var claim = IssueVaultClaim(player.MetaMaskAddress, amount);
 
-            if (!string.IsNullOrEmpty(txHash))
-            {
-                reward.TransactionHash = txHash;
-                reward.Status = RewardStatus.Completed;
-                reward.CompletedAt = DateTime.UtcNow;
-
-                // Update player balance
-                player.Balance += amount;
-                _dbContext.Update(player);
-            }
-            else
-            {
-                reward.Status = RewardStatus.Failed;
-                reward.ErrorMessage = "Transaction failed";
-            }
+            reward.Nonce = claim.Nonce.ToString();
+            reward.Deadline = claim.Deadline;
+            reward.Signature = claim.Signature;
+            reward.Status = RewardStatus.Issued;
 
             _dbContext.Update(reward);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation($"Reward distributed: {amount} 1870Coin to {player.Username} (ID: {playerId})");
+            _logger.LogInformation($"Reward claim issued: {amount} ARC to {player.Username} (ID: {playerId})");
             return reward;
         }
         catch (Exception ex)
@@ -95,53 +111,86 @@ public class RewardService : IRewardService
         }
     }
 
-    private async Task<string?> TransferTokenAsync(string recipientAddress, decimal amount)
+    /// <summary>
+    /// Signs an EIP-712 "Claim(address recipient,uint256 amount,uint256 nonce,uint256 deadline)"
+    /// message for the Arcade1870RewardVault contract, matching the domain
+    /// (name "Arcade1870RewardVault", version "1", the configured chain ID and
+    /// vault address) that the vault verifies on-chain.
+    /// </summary>
+    private (BigInteger Nonce, long Deadline, string Signature) IssueVaultClaim(string recipientAddress, decimal amount)
     {
-        try
+        var amountInWei = Web3.Convert.ToWei(amount, _blockchainConfig.TokenDecimals);
+        var nonce = (BigInteger)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000 + Random.Shared.Next(0, 1000);
+        var deadline = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + _blockchainConfig.ClaimTtlSeconds;
+
+        var domainSeparator = ComputeDomainSeparator();
+        var structHash = Sha3Keccack.Current.CalculateHash(Concat(
+            Sha3Keccack.Current.CalculateHash(Encoding.UTF8.GetBytes(ClaimTypeHash)),
+            AddressToWord(recipientAddress),
+            UintToWord(amountInWei),
+            UintToWord(nonce),
+            UintToWord(deadline)));
+
+        var digest = Sha3Keccack.Current.CalculateHash(Concat(
+            new byte[] { 0x19, 0x01 },
+            domainSeparator,
+            structHash));
+
+        var signerKey = new EthECKey(_blockchainConfig.RewardSignerPrivateKey);
+        var signature = signerKey.SignAndCalculateV(digest);
+
+        var signatureBytes = Concat(signature.R, signature.S, new[] { signature.V[0] });
+        return (nonce, deadline, "0x" + signatureBytes.ToHex());
+    }
+
+    private byte[] ComputeDomainSeparator()
+    {
+        return Sha3Keccack.Current.CalculateHash(Concat(
+            Sha3Keccack.Current.CalculateHash(Encoding.UTF8.GetBytes(DomainTypeHash)),
+            Sha3Keccack.Current.CalculateHash(Encoding.UTF8.GetBytes(VaultDomainName)),
+            Sha3Keccack.Current.CalculateHash(Encoding.UTF8.GetBytes(VaultDomainVersion)),
+            UintToWord(_blockchainConfig.ChainId),
+            AddressToWord(_blockchainConfig.RewardVaultAddress)));
+    }
+
+    private static byte[] UintToWord(BigInteger value)
+    {
+        // Big-endian, left-padded to 32 bytes (abi.encode of a uint256).
+        var bytes = value.ToByteArray(isUnsigned: true, isBigEndian: true);
+        var word = new byte[32];
+        Array.Copy(bytes, 0, word, 32 - bytes.Length, bytes.Length);
+        return word;
+    }
+
+    private static byte[] AddressToWord(string address)
+    {
+        var addressBytes = address.HexToByteArray();
+        var word = new byte[32];
+        Array.Copy(addressBytes, 0, word, 32 - addressBytes.Length, addressBytes.Length);
+        return word;
+    }
+
+    private static byte[] Concat(params byte[][] arrays)
+    {
+        var result = new byte[arrays.Sum(a => a.Length)];
+        var offset = 0;
+        foreach (var array in arrays)
         {
-            // Load account with private key (should be in Azure Key Vault in production)
-            var account = new Account(_blockchainConfig.PrivateKey, _blockchainConfig.ChainId);
-            var web3 = new Web3(account, _blockchainConfig.RpcUrl);
-
-            // Get contract handler
-            var contractAddress = _blockchainConfig.ContractAddress;
-            var contract = web3.Eth.GetContract(StandardTokenABI.ABI, contractAddress);
-
-            // Get transfer function
-            var transferFunction = contract.GetFunction("transfer");
-
-            // Convert amount to Wei (assuming 18 decimals for ERC-20)
-            var amountInWei = Web3.Convert.ToWei(amount, 18);
-
-            // Execute transfer
-            var transactionHash = await transferFunction.SendTransactionAsync(
-                account.Address,
-                new Nethereum.RPC.Eth.DTOs.TransactionInput(),
-                recipientAddress,
-                (BigInteger)amountInWei);
-
-            _logger.LogInformation($"Transfer transaction initiated: {transactionHash}");
-            return transactionHash;
+            Buffer.BlockCopy(array, 0, result, offset, array.Length);
+            offset += array.Length;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error transferring tokens: {ex.Message}");
-            return null;
-        }
+        return result;
     }
 
     public async Task<decimal> GetPlayerBlockchainBalanceAsync(string walletAddress)
     {
         try
         {
-            var contractAddress = _blockchainConfig.ContractAddress;
-            var contract = _web3.Eth.GetContract(StandardTokenABI.ABI, contractAddress);
-
+            var contract = _web3.Eth.GetContract(MinimalErc20Abi, _blockchainConfig.TokenAddress);
             var balanceFunction = contract.GetFunction("balanceOf");
             var balance = await balanceFunction.CallAsync<BigInteger>(walletAddress);
 
-            // Convert from Wei to tokens (18 decimals)
-            return Web3.Convert.FromWei(balance, 18);
+            return Web3.Convert.FromWei(balance, _blockchainConfig.TokenDecimals);
         }
         catch (Exception ex)
         {
@@ -161,6 +210,13 @@ public class RewardService : IRewardService
             reward.TransactionHash = transactionHash;
             reward.Status = RewardStatus.Completed;
             reward.CompletedAt = DateTime.UtcNow;
+
+            var player = await _dbContext.Players.FindAsync(reward.PlayerId);
+            if (player != null)
+            {
+                player.Balance += reward.Amount;
+                _dbContext.Update(player);
+            }
 
             _dbContext.Update(reward);
             await _dbContext.SaveChangesAsync();
@@ -190,6 +246,12 @@ public class RewardService : IRewardService
         }
     }
 
+    /// <summary>
+    /// Re-issues fresh, unexpired vault claim signatures for rewards that
+    /// failed to be issued (e.g. due to a transient signer error). This does
+    /// not retry on-chain transfers directly, since claims are always
+    /// submitted and paid for by the player's own wallet.
+    /// </summary>
     public async Task RetryFailedRewardsAsync()
     {
         try
@@ -203,14 +265,13 @@ public class RewardService : IRewardService
             {
                 if (reward.Player == null) continue;
 
-                var txHash = await TransferTokenAsync(reward.Player.MetaMaskAddress, reward.Amount);
-                if (!string.IsNullOrEmpty(txHash))
-                {
-                    reward.TransactionHash = txHash;
-                    reward.Status = RewardStatus.Completed;
-                    reward.CompletedAt = DateTime.UtcNow;
-                    _dbContext.Update(reward);
-                }
+                var claim = IssueVaultClaim(reward.Player.MetaMaskAddress, reward.Amount);
+                reward.Nonce = claim.Nonce.ToString();
+                reward.Deadline = claim.Deadline;
+                reward.Signature = claim.Signature;
+                reward.Status = RewardStatus.Issued;
+                reward.ErrorMessage = null;
+                _dbContext.Update(reward);
             }
 
             await _dbContext.SaveChangesAsync();
