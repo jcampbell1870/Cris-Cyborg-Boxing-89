@@ -78,11 +78,11 @@ public class RewardsController : ControllerBase
     /// backend can record the resulting transaction hash.
     /// </summary>
     [HttpPost("{rewardId}/complete")]
-    public async Task<IActionResult> CompleteReward(int rewardId, [FromBody] dynamic request)
+    public async Task<IActionResult> CompleteReward(int rewardId, [FromBody] CompleteRewardRequest request)
     {
         try
         {
-            string? transactionHash = request?.transactionHash;
+            string? transactionHash = request?.TransactionHash;
             if (string.IsNullOrEmpty(transactionHash))
                 return BadRequest(new { error = "transactionHash is required" });
 
@@ -141,3 +141,13 @@ public class RewardsController : ControllerBase
         }
     }
 }
+
+/// <summary>
+/// Request body for confirming a submitted Arcade1870RewardVault claim
+/// transaction.
+/// </summary>
+public class CompleteRewardRequest
+{
+    public string? TransactionHash { get; set; }
+}
+
