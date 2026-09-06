@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{7bd52f0a-2b69-4b12-91ce-42495e315aa5}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\appsettings.Development.json" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\appsettings.json" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Configuration\BlockchainConfig.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Controllers\AuthController.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Controllers\MatchesController.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Controllers\PlayersController.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Controllers\RewardsController.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Controllers\TournamentsController.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\CrisCyborgBoxing.Backend.csproj" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Data\AppDbContext.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Data\Migrations\20260607163105_InitialCreate.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Data\Migrations\20260607163105_InitialCreateModelSnapshot.Designer.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Hubs\MatchHub.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Hubs\TournamentHub.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Models\Dto.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Models\Match.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Models\Player.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Models\Reward.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Models\Tournament.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Models\TournamentEntry.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Program.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Services\AuthenticationService.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Services\MatchmakingService.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Services\MetaMaskService.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Services\RewardService.cs" />
+    <None Include="$(MSBuildThisFileDirectory)Backend\CrisCyborgBoxing.Backend\Services\TournamentService.cs" />
+    <None Include="$(MSBuildThisFileDirectory)UnrealEngine\CrisCyborgBoxing.uproject" />
+    <None Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\CrisCyborgBoxing.Build.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Public\Boxer.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Public\BoxerController.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Public\CrisCyborgBoxing.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Public\CrisCyborgBoxingGameMode.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Public\GameAPIClient.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Private\Boxer.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Private\BoxerController.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Private\CrisCyborgBoxing.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Private\CrisCyborgBoxingGameMode.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)UnrealEngine\Source\CrisCyborgBoxing\Private\GameAPIClient.cpp" />
+  </ItemGroup>
+</Project>
