@@ -13,7 +13,7 @@ namespace CrisCyborgBoxing.Backend.Services;
 
 public interface IRewardService
 {
-    Task<Reward?> DistributeRewardAsync(int playerId, decimal amount, RewardType rewardType, int? matchId = null);
+    Task<Reward?> DistributeRewardAsync(int playerId, RewardType rewardType, int? matchId = null);
     Task<decimal> GetPlayerBlockchainBalanceAsync(string walletAddress);
     Task<bool> CompleteRewardAsync(int rewardId, string transactionHash);
     Task<List<Reward>> GetPlayerRewardsAsync(int playerId);
@@ -59,7 +59,7 @@ public class RewardService : IRewardService
         _web3 = new Web3(_blockchainConfig.RpcUrl);
     }
 
-    public async Task<Reward?> DistributeRewardAsync(int playerId, decimal amount, RewardType rewardType, int? matchId = null)
+    public async Task<Reward?> DistributeRewardAsync(int playerId, RewardType rewardType, int? matchId = null)
     {
         try
         {
@@ -77,11 +77,29 @@ public class RewardService : IRewardService
                 return null;
             }
 
+            // Enforce the minimum interval between reward claims per player,
+            // regardless of reward type, to prevent claim spamming.
+            var lastReward = await _dbContext.Rewards
+                .Where(r => r.PlayerId == playerId)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
+            if (lastReward != null &&
+                (DateTime.UtcNow - lastReward.CreatedAt).TotalMilliseconds < _blockchainConfig.MinClaimIntervalMs)
+            {
+                _logger.LogWarning($"Player {playerId} attempted to claim a reward before the minimum claim interval elapsed");
+                return null;
+            }
+
+            // The reward amount is always determined server-side from the
+            // reward type, never trusted from the caller, so a client cannot
+            // request an arbitrarily large signed claim.
+            var resolvedAmount = ResolveRewardAmount(rewardType);
+
             // Create reward record
             var reward = new Reward
             {
                 PlayerId = playerId,
-                Amount = amount,
+                Amount = resolvedAmount,
                 Status = RewardStatus.Processing,
                 RewardType = rewardType,
                 MatchId = matchId,
@@ -91,7 +109,7 @@ public class RewardService : IRewardService
             _dbContext.Rewards.Add(reward);
             await _dbContext.SaveChangesAsync();
 
-            var claim = IssueVaultClaim(player.MetaMaskAddress, amount);
+            var claim = IssueVaultClaim(player.MetaMaskAddress, resolvedAmount);
 
             reward.Nonce = claim.Nonce.ToString();
             reward.Deadline = claim.Deadline;
@@ -101,7 +119,7 @@ public class RewardService : IRewardService
             _dbContext.Update(reward);
             await _dbContext.SaveChangesAsync();
 
-            _logger.LogInformation($"Reward claim issued: {amount} ARC to {player.Username} (ID: {playerId})");
+            _logger.LogInformation($"Reward claim issued: {resolvedAmount} ARC to {player.Username} (ID: {playerId})");
             return reward;
         }
         catch (Exception ex)
@@ -109,6 +127,24 @@ public class RewardService : IRewardService
             _logger.LogError($"Error distributing reward: {ex.Message}");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Maps a reward type to a fixed ARC amount, relative to the configured
+    /// base <see cref="BlockchainConfig.RewardAmount"/>. Never trust a
+    /// client-supplied amount for a signed vault claim.
+    /// </summary>
+    private decimal ResolveRewardAmount(RewardType rewardType)
+    {
+        var baseAmount = _blockchainConfig.RewardAmount;
+        return rewardType switch
+        {
+            RewardType.MatchWin => baseAmount,
+            RewardType.TournamentVictory => baseAmount * 5,
+            RewardType.DailyBonus => baseAmount / 2,
+            RewardType.ReferralBonus => baseAmount,
+            _ => baseAmount
+        };
     }
 
     /// <summary>
@@ -120,7 +156,7 @@ public class RewardService : IRewardService
     private (BigInteger Nonce, long Deadline, string Signature) IssueVaultClaim(string recipientAddress, decimal amount)
     {
         var amountInWei = Web3.Convert.ToWei(amount, _blockchainConfig.TokenDecimals);
-        var nonce = (BigInteger)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000 + Random.Shared.Next(0, 1000);
+        var nonce = GenerateNonce();
         var deadline = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + _blockchainConfig.ClaimTtlSeconds;
 
         var domainSeparator = ComputeDomainSeparator();
@@ -141,6 +177,21 @@ public class RewardService : IRewardService
 
         var signatureBytes = Concat(signature.R, signature.S, new[] { signature.V[0] });
         return (nonce, deadline, "0x" + signatureBytes.ToHex());
+    }
+
+    /// <summary>
+    /// Generates a cryptographically random, effectively collision-free
+    /// nonce for the vault claim (the vault tracks used nonces per
+    /// recipient, so any sufficiently random 256-bit value is safe).
+    /// </summary>
+    private static BigInteger GenerateNonce()
+    {
+        var randomBytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(31);
+        // Prepend a zero byte so the value is always interpreted as
+        // non-negative when read back as a big-endian unsigned BigInteger.
+        var unsignedBytes = new byte[32];
+        Array.Copy(randomBytes, 0, unsignedBytes, 1, randomBytes.Length);
+        return new BigInteger(unsignedBytes, isUnsigned: true, isBigEndian: true);
     }
 
     private byte[] ComputeDomainSeparator()

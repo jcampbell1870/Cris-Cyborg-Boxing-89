@@ -77,6 +77,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "API")
 	void FindMatch(int32 PlayerId);
 
+	// Amount is informational only in the request - the backend always
+	// determines the actual ARC amount server-side from RewardType, so a
+	// modified client cannot request an inflated signed claim.
 	UFUNCTION(BlueprintCallable, Category = "API")
 	void ClaimReward(int32 PlayerId, float Amount, const FString& RewardType);
 

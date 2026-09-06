@@ -28,7 +28,10 @@ public class RewardsController : ControllerBase
     /// client is responsible for submitting the returned
     /// claim(amount, nonce, deadline, signature) transaction to the vault
     /// itself (paying its own gas), the same non-custodial flow used by
-    /// Crypto Chess. This endpoint never transfers ARC directly.
+    /// Crypto Chess. This endpoint never transfers ARC directly. The ARC
+    /// amount is always determined server-side from the reward type - any
+    /// client-supplied amount is ignored, so a client cannot request an
+    /// arbitrarily large signed claim.
     /// </summary>
     [HttpPost("claim")]
     public async Task<IActionResult> ClaimReward([FromBody] dynamic request)
@@ -36,16 +39,15 @@ public class RewardsController : ControllerBase
         try
         {
             int playerId = request?.playerId ?? 0;
-            decimal amount = request?.amount ?? (decimal)_blockchainConfig.RewardAmount;
             string rewardTypeStr = request?.rewardType ?? "MatchWin";
 
-            if (playerId == 0 || amount <= 0)
+            if (playerId == 0)
                 return BadRequest(new { error = "Invalid request parameters" });
 
             if (!Enum.TryParse<RewardType>(rewardTypeStr, out var rewardType))
                 rewardType = RewardType.MatchWin;
 
-            var reward = await _rewardService.DistributeRewardAsync(playerId, amount, rewardType);
+            var reward = await _rewardService.DistributeRewardAsync(playerId, rewardType);
             if (reward == null)
                 return StatusCode(500, new { error = "Failed to issue reward claim" });
 
