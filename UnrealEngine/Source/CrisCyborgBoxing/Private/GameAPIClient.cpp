@@ -104,6 +104,29 @@ void UGameAPIClient::ClaimReward(int32 PlayerId, float Amount, const FString& Re
 	Request->ProcessRequest();
 }
 
+void UGameAPIClient::CompleteReward(int32 RewardId, const FString& TransactionHash)
+{
+	if (!Http.IsValid())
+		return;
+
+	FHttpRequestRef Request = Http->CreateRequest();
+	Request->SetURL(FString::Printf(TEXT("%s/api/rewards/%d/complete"), *ServerURL, RewardId));
+	Request->SetVerb(TEXT("POST"));
+	Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Request->SetHeader(TEXT("Authorization"), TEXT("Bearer ") + AuthToken);
+
+	TSharedPtr<FJsonObject> JsonPayload = MakeShareable(new FJsonObject());
+	JsonPayload->SetStringField("transactionHash", TransactionHash);
+
+	FString JsonStr;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonStr);
+	FJsonSerializer::Serialize(JsonPayload.ToSharedRef(), Writer);
+
+	Request->SetContentAsString(JsonStr);
+	Request->OnProcessRequestComplete().BindUObject(this, &UGameAPIClient::OnRewardCompletedResponse);
+	Request->ProcessRequest();
+}
+
 void UGameAPIClient::OnAuthMessageResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 	if (bWasSuccessful && Response.IsValid())
@@ -165,6 +188,32 @@ void UGameAPIClient::OnRewardClaimedResponse(FHttpRequestPtr Request, FHttpRespo
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
 	FJsonSerializer::Deserialize(Reader, JsonObject);
 
-	float Amount = JsonObject->GetNumberField("amount");
-	OnRewardClaimed.Broadcast(Amount);
+	// The backend only issues a signed Arcade1870RewardVault claim here - it
+	// does not transfer ARC directly. The game (or connected wallet) must
+	// still submit claim(Amount, Nonce, Deadline, Signature) to
+	// RewardVaultAddress to actually receive the tokens, then call
+	// CompleteReward() with the resulting transaction hash.
+	FArcadeRewardClaim Claim;
+	Claim.RewardId = JsonObject->GetIntegerField("rewardId");
+	Claim.Amount = JsonObject->GetNumberField("amount");
+	Claim.Nonce = JsonObject->GetStringField("nonce");
+	Claim.Deadline = FString::Printf(TEXT("%lld"), (int64)JsonObject->GetNumberField("deadline"));
+	Claim.Signature = JsonObject->GetStringField("signature");
+	Claim.TokenAddress = JsonObject->GetStringField("tokenAddress");
+	Claim.RewardVaultAddress = JsonObject->GetStringField("rewardVaultAddress");
+	Claim.ChainId = JsonObject->GetIntegerField("chainId");
+	Claim.ChainName = JsonObject->GetStringField("chainName");
+
+	OnRewardClaimed.Broadcast(Claim);
+}
+
+void UGameAPIClient::OnRewardCompletedResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	if (!bWasSuccessful || !Response.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Reward completion notification failed"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Reward completion recorded: %s"), *Response->GetContentAsString());
 }

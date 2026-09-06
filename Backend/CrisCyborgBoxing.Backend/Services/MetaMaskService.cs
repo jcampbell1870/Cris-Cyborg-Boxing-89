@@ -1,10 +1,6 @@
 using CrisCyborgBoxing.Backend.Configuration;
 using CrisCyborgBoxing.Backend.Models;
-using Nethereum.Web3;
-using Nethereum.Web3.Accounts;
-using Nethereum.StandardTokenABI;
-using Nethereum.RPC.Eth.DTOs;
-using System.Numerics;
+using Nethereum.Signer;
 
 namespace CrisCyborgBoxing.Backend.Services;
 
@@ -41,8 +37,8 @@ public class MetaMaskService : IMetaMaskService
                 return false;
             }
 
-            var web3 = new Web3();
-            var recoveredAddress = web3.Eth.Accounts.Recovery.RecoverFromSignatureAsync(message, signature).Result;
+            var signer = new EthereumMessageSigner();
+            var recoveredAddress = signer.EncodeUTF8AndEcRecover(message, signature);
 
             var isValid = recoveredAddress.Equals(address, StringComparison.OrdinalIgnoreCase);
 

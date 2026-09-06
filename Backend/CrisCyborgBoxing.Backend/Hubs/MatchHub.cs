@@ -84,7 +84,7 @@ public class MatchHub : Hub
             await _dbContext.SaveChangesAsync();
 
             // Distribute reward
-            var reward = await _rewardService.DistributeRewardAsync(winnerId, rewardAmount, RewardType.MatchWin, matchId);
+            var reward = await _rewardService.DistributeRewardAsync(winnerId, RewardType.MatchWin, matchId);
 
             // Update player wins/losses
             if (match.Player1 != null && match.Player2 != null)

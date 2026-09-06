@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cris Cyborg Boxing 89 - Download for Windows</title>
+  <meta name="description" content="Cris Cyborg Boxing 89 is a free-to-play PC boxing game for Windows with Arcade1870 (ARC) token rewards." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header>
+    <h1>🥊 Cris Cyborg Boxing 89</h1>
+    <p>
+      A 2D boxing game built in Unreal Engine for Windows PC, with play-to-earn
+      Arcade1870 (ARC) token rewards - the same reward system used by
+      <a href="https://www.cryptochess.org" target="_blank" rel="noopener">Crypto Chess</a>.
+    </p>
+  </header>
+
+  <main>
+    <section class="panel download">
+      <span class="badge">Windows 10 / 11 &middot; 64-bit</span>
+      <h2>Download the game</h2>
+      <p>
+        Grab the latest Windows build from the project's GitHub Releases page.
+        The download is a ZIP archive containing the packaged Unreal Engine
+        Win64 build - extract it and run <code>CrisCyborgBoxing.exe</code>.
+      </p>
+      <p>
+        <a class="button" href="https://github.com/jcampbell1870/Cris-Cyborg-Boxing-89/releases/latest">
+          Download for Windows
+        </a>
+        <a class="button secondary" href="https://github.com/jcampbell1870/Cris-Cyborg-Boxing-89/releases">
+          All releases
+        </a>
+      </p>
+      <p class="requirements">
+        Prefer the Microsoft Store? A Windows Store (MSIX) package is also
+        available - see the
+        <a href="https://github.com/jcampbell1870/Cris-Cyborg-Boxing-89/tree/main/Packaging/WindowsStore">
+          Windows Store packaging guide
+        </a> in the repository.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Arcade1870 (ARC) rewards</h2>
+      <p>
+        Winning matches issues a signed claim against the shared, pre-funded
+        <code>Arcade1870RewardVault</code> smart contract - the exact same
+        vault and ARC token used by Crypto Chess. Connect a MetaMask-compatible
+        wallet in-game, win a match, and submit the signed claim to receive
+        ARC directly in your wallet. The vault only validates a signed claim
+        and doesn't care which game requested it, so the same treasury can
+        safely be shared across multiple Arcade1870 games.
+      </p>
+      <ul>
+        <li>Token: Arcade1870 (ARC), an ERC-20 on Ethereum Mainnet</li>
+        <li>Reward contract: <code>Arcade1870RewardVault</code> (EIP-712 signed claims)</li>
+        <li>Players pay their own gas and receive ARC directly - the backend never holds player funds</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h2>System requirements</h2>
+      <ul>
+        <li>OS: Windows 10 or later (64-bit)</li>
+        <li>A MetaMask-compatible Ethereum wallet to receive ARC rewards (optional, only needed to claim rewards)</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      Source code on
+      <a href="https://github.com/jcampbell1870/Cris-Cyborg-Boxing-89">GitHub</a>.
+    </p>
+  </footer>
+</body>
+</html>

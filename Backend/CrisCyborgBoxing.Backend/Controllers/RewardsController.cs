@@ -1,3 +1,4 @@
+using CrisCyborgBoxing.Backend.Configuration;
 using CrisCyborgBoxing.Backend.Models;
 using CrisCyborgBoxing.Backend.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,44 +10,91 @@ namespace CrisCyborgBoxing.Backend.Controllers;
 public class RewardsController : ControllerBase
 {
     private readonly IRewardService _rewardService;
+    private readonly BlockchainConfig _blockchainConfig;
     private readonly ILogger<RewardsController> _logger;
 
-    public RewardsController(IRewardService rewardService, ILogger<RewardsController> logger)
+    public RewardsController(
+        IRewardService rewardService,
+        BlockchainConfig blockchainConfig,
+        ILogger<RewardsController> logger)
     {
         _rewardService = rewardService;
+        _blockchainConfig = blockchainConfig;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Issues a signed Arcade1870RewardVault claim for the player. The game
+    /// client is responsible for submitting the returned
+    /// claim(amount, nonce, deadline, signature) transaction to the vault
+    /// itself (paying its own gas), the same non-custodial flow used by
+    /// Crypto Chess. This endpoint never transfers ARC directly. The ARC
+    /// amount is always determined server-side from the reward type - any
+    /// client-supplied amount is ignored, so a client cannot request an
+    /// arbitrarily large signed claim.
+    /// </summary>
     [HttpPost("claim")]
     public async Task<IActionResult> ClaimReward([FromBody] dynamic request)
     {
         try
         {
             int playerId = request?.playerId ?? 0;
-            decimal amount = request?.amount ?? 0;
             string rewardTypeStr = request?.rewardType ?? "MatchWin";
 
-            if (playerId == 0 || amount <= 0)
+            if (playerId == 0)
                 return BadRequest(new { error = "Invalid request parameters" });
 
             if (!Enum.TryParse<RewardType>(rewardTypeStr, out var rewardType))
                 rewardType = RewardType.MatchWin;
 
-            var reward = await _rewardService.DistributeRewardAsync(playerId, amount, rewardType);
+            var reward = await _rewardService.DistributeRewardAsync(playerId, rewardType);
             if (reward == null)
-                return StatusCode(500, new { error = "Failed to distribute reward" });
+                return StatusCode(500, new { error = "Failed to issue reward claim" });
 
             return Ok(new
             {
                 rewardId = reward.Id,
                 amount = reward.Amount,
                 status = reward.Status,
-                transactionHash = reward.TransactionHash
+                nonce = reward.Nonce,
+                deadline = reward.Deadline,
+                signature = reward.Signature,
+                tokenAddress = _blockchainConfig.TokenAddress,
+                rewardVaultAddress = _blockchainConfig.RewardVaultAddress,
+                chainId = _blockchainConfig.ChainId,
+                chainName = _blockchainConfig.ChainName
             });
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error claiming reward: {ex.Message}");
+            return StatusCode(500, new { error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Called by the game client after it has successfully submitted the
+    /// signed claim transaction to the Arcade1870RewardVault on-chain, so the
+    /// backend can record the resulting transaction hash.
+    /// </summary>
+    [HttpPost("{rewardId}/complete")]
+    public async Task<IActionResult> CompleteReward(int rewardId, [FromBody] CompleteRewardRequest request)
+    {
+        try
+        {
+            string? transactionHash = request?.TransactionHash;
+            if (string.IsNullOrEmpty(transactionHash))
+                return BadRequest(new { error = "transactionHash is required" });
+
+            var success = await _rewardService.CompleteRewardAsync(rewardId, transactionHash);
+            if (!success)
+                return NotFound(new { error = "Reward not found" });
+
+            return Ok(new { rewardId, transactionHash, status = RewardStatus.Completed });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error completing reward: {ex.Message}");
             return StatusCode(500, new { error = "Internal server error" });
         }
     }
@@ -93,3 +141,13 @@ public class RewardsController : ControllerBase
         }
     }
 }
+
+/// <summary>
+/// Request body for confirming a submitted Arcade1870RewardVault claim
+/// transaction.
+/// </summary>
+public class CompleteRewardRequest
+{
+    public string? TransactionHash { get; set; }
+}
+
