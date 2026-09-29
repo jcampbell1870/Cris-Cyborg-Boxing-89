@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: cris-cyborg-boxing-89
+    runtime: python
+    rootDir: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn criscyborg.server.app:app --host 0.0.0.0 --port $PORT
