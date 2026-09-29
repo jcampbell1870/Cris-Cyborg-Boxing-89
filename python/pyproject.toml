@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "criscyborg-boxing"
+version = "1.0.0"
+description = "Cris Cyborg Boxing 89 - Python 3 rewrite with Arcade1870 rewards"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.6",
+    "eth-account>=0.11",
+    "eth-utils>=4.0",
+    "PyJWT>=2.8",
+    "httpx>=0.27",
+    "websockets>=12.0",
+    "pygame>=2.5",
+]
+
+[project.scripts]
+criscyborg = "criscyborg.client.terminal:main"
+
+[tool.setuptools.packages.find]
+include = ["criscyborg*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

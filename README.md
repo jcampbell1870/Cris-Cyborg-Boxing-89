@@ -7,8 +7,12 @@ used by [Crypto Chess](https://www.cryptochess.org).
 
 ## Project layout
 
-- `UnrealEngine/` - the Unreal Engine 5.3 game project (C++ gameplay code,
-  Win64-only per `CrisCyborgBoxing.uproject`).
+- `python/` - the **Python 3 rewrite** of the game: boxing engine, FastAPI
+  online server, GG Poker style lobby (one-vs-one tables and eight-person
+  sit-and-go tournaments), pygame/terminal clients and the Arcade1870 reward
+  payout system. See [`python/README.md`](python/README.md).
+- `UnrealEngine/` - the original Unreal Engine 5.3 game project (C++ gameplay
+  code, Win64-only per `CrisCyborgBoxing.uproject`).
 - `Backend/CrisCyborgBoxing.Backend/` - the ASP.NET Core backend: auth,
   matchmaking, tournaments, and Arcade1870 reward-claim issuance.
 - `contracts/Arcade1870RewardVault.sol` - the shared vault contract that
@@ -20,7 +24,8 @@ used by [Crypto Chess](https://www.cryptochess.org).
 
 ## Arcade1870 (ARC) reward system
 
-Rewards are issued using the same non-custodial pattern as Crypto Chess:
+Rewards are issued using the same non-custodial pattern as Crypto Chess and
+Crypto Hockey - a flat **10 ARC per completed game**:
 
 1. After a match win, tournament victory, or other reward event, the game
    calls `POST /api/rewards/claim` on the backend.
@@ -55,6 +60,18 @@ the latest packaged Win64 build on this repository's
 See [`Packaging/WindowsStore/README.md`](Packaging/WindowsStore/README.md)
 for step-by-step instructions to package the same Win64 build as an MSIX
 package for Microsoft Store submission.
+
+## Python development
+
+```sh
+cd python
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+export REWARD_SIGNER_PRIVATE_KEY=0x...   # from a secrets manager, never committed
+uvicorn criscyborg.server.app:app --reload
+python -m criscyborg.client.pygame_client --difficulty Expert
+python -m pytest
+```
 
 ## Backend development
 
