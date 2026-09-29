@@ -49,6 +49,21 @@ export JWT_SECRET=$(python -c "import secrets;print(secrets.token_urlsafe(48))")
 uvicorn criscyborg.server.app:app --reload
 ```
 
+The web server requirements intentionally exclude `pygame`. To install the
+optional desktop renderer, run `pip install -r requirements-client.txt`.
+
+## Deploy the web service on Render
+
+Create a Python web service with **Root Directory** set to `python`, then use:
+
+| Setting | Value |
+| --- | --- |
+| Build Command | `pip install -r requirements.txt` |
+| Start Command | `uvicorn criscyborg.server.app:app --host 0.0.0.0 --port $PORT` |
+
+The web-service requirements exclude `pygame`, so Render does not need SDL2 to
+build the API service.
+
 Offline practice bout (no server required):
 
 ```sh
