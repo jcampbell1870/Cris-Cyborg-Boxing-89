@@ -48,7 +48,7 @@ address. See [`Backend/CrisCyborgBoxing.Backend/appsettings.json`](Backend/CrisC
 signer key are configured (the signer key must be stored in a secrets
 manager in production, never committed to source control).
 
-## Downloading the Windows build
+## Downloading the game
 
 The [GitHub Pages site](docs/index.html) (published from the `docs/` folder,
 see [`.github/workflows/pages.yml`](.github/workflows/pages.yml)) provides a
