@@ -17,7 +17,7 @@ used by [Crypto Chess](https://www.cryptochess.org).
   matchmaking, tournaments, and Arcade1870 reward-claim issuance.
 - `contracts/Arcade1870RewardVault.sol` - the shared vault contract that
   releases ARC for signed reward claims.
-- `docs/` - the GitHub Pages site with a downloadable Windows build link
+- `docs/` - the GitHub Pages site and downloadable Python desktop game ZIP
   (published from this folder - see below).
 - `Packaging/WindowsStore/` - MSIX packaging scaffold for a Microsoft Store
   submission.
@@ -51,9 +51,12 @@ manager in production, never committed to source control).
 ## Downloading the Windows build
 
 The [GitHub Pages site](docs/index.html) (published from the `docs/` folder,
-see [`.github/workflows/pages.yml`](.github/workflows/pages.yml)) links to
-the latest packaged Win64 build on this repository's
-[Releases](../../releases) page as a free downloadable ZIP.
+see [`.github/workflows/pages.yml`](.github/workflows/pages.yml)) provides a
+downloadable ZIP of the Python desktop game. Extract it, enter the `python/`
+directory, and follow the install/run instructions on the site. The ZIP
+contains the Python source and is not a packaged Unreal Engine executable;
+packaged Unreal builds, if published, are listed on the
+[Releases](../../releases) page.
 
 ## Microsoft Store version
 
