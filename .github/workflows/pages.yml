@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "python/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -26,6 +27,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Package Python game download
+        run: |
+          mkdir -p docs/downloads
+          git archive --format=zip --prefix=CrisCyborgBoxing89/ HEAD python \
+            -o docs/downloads/CrisCyborgBoxing89.zip
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
