@@ -20,6 +20,8 @@ concurrency:
 
 jobs:
   build-desktop:
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
