@@ -69,7 +69,7 @@ class PygameClient:
         self.ai_cooldown = 0.0
 
         pygame.init()
-        pygame.display.set_caption("Cris Cyborg Boxing 89")
+        pygame.display.set_caption("Cris Cyborg Boxing")
         if fullscreen and display_size is None:
             display_info = pygame.display.Info()
             display_size = (display_info.current_w, display_info.current_h)
@@ -354,7 +354,7 @@ def parse_resolution(value: str) -> tuple[int, int]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Cris Cyborg Boxing 89 (pygame)")
+    parser = argparse.ArgumentParser(description="Cris Cyborg Boxing (pygame)")
     parser.add_argument("--name", default="Challenger")
     parser.add_argument("--opponent", default="Cris Cyborg")
     parser.add_argument(

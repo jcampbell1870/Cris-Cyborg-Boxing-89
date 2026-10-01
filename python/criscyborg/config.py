@@ -1,4 +1,4 @@
-"""Configuration for the Python 3 rewrite of Cris Cyborg Boxing 89.
+"""Configuration for the Python 3 rewrite of Cris Cyborg Boxing.
 
 The Arcade1870 (ARC / A1870) reward settings intentionally mirror Crypto
 Hockey so both games share the *same* payout system and the *same* deployed

@@ -29,7 +29,7 @@ lobby_service = OnlineCompetitionService(
     reward_issuer=reward_issuer, seat_limit=server_config.tournament_seat_limit
 )
 
-app = FastAPI(title="Cris Cyborg Boxing 89", version="1.0.0")
+app = FastAPI(title="Cris Cyborg Boxing", version="1.0.0")
 bearer_scheme = HTTPBearer(auto_error=False)
 
 

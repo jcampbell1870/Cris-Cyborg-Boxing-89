@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "criscyborg-boxing"
 version = "1.0.0"
-description = "Cris Cyborg Boxing 89 - Python 3 rewrite with Arcade1870 rewards"
+description = "Cris Cyborg Boxing - Python 3 rewrite with Arcade1870 rewards"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

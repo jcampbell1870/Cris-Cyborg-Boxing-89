@@ -1,4 +1,4 @@
-"""Cris Cyborg Boxing 89 - Python 3 rewrite.
+"""Cris Cyborg Boxing - Python 3 rewrite.
 
 A 2D boxing game with online one-vs-one bouts, GG Poker style eight-max
 sit-and-go tournaments, and Arcade1870 (ARC) play-to-earn rewards paid from

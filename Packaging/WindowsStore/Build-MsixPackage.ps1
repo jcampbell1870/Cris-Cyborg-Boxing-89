@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Packages a cooked Win64 build of Cris Cyborg Boxing 89 into an MSIX package
+  Packages a cooked Win64 build of Cris Cyborg Boxing into an MSIX package
   for Microsoft Store submission.
 
 .DESCRIPTION
@@ -33,7 +33,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $PackagingRoot = $PSScriptRoot
-$StagingDir = Join-Path $env:TEMP "CrisCyborgBoxing89-MsixStaging"
+$StagingDir = Join-Path $env:TEMP "CrisCyborgBoxing-MsixStaging"
 
 if (Test-Path $StagingDir) {
     Remove-Item -Recurse -Force $StagingDir

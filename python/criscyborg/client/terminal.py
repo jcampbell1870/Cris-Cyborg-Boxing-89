@@ -154,7 +154,7 @@ def rewards(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Cris Cyborg Boxing 89 (terminal)")
+    parser = argparse.ArgumentParser(description="Cris Cyborg Boxing (terminal)")
     parser.add_argument("--server", default="http://localhost:8000")
     parser.add_argument("--private-key", help="Dev key used to sign the login challenge")
     parser.add_argument("--name", default="Challenger")
