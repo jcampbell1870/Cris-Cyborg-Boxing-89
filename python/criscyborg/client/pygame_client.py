@@ -55,6 +55,8 @@ class PygameClient:
         match: BoxingMatch,
         ai: BoxerAI | None = None,
         net: "MatchChannel | None" = None,
+        display_size: tuple[int, int] | None = None,
+        fullscreen: bool = False,
     ) -> None:
         import pygame  # imported lazily so the package works headless
 
@@ -68,10 +70,20 @@ class PygameClient:
 
         pygame.init()
         pygame.display.set_caption("Cris Cyborg Boxing 89")
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        if fullscreen and display_size is None:
+            display_info = pygame.display.Info()
+            display_size = (display_info.current_w, display_info.current_h)
+        display_size = display_size or (WIDTH, HEIGHT)
+        self.scale = min(display_size[0] / WIDTH, display_size[1] / HEIGHT)
+        self.offset_x = (display_size[0] - WIDTH * self.scale) / 2
+        self.offset_y = (display_size[1] - HEIGHT * self.scale) / 2
+        flags = pygame.FULLSCREEN if fullscreen else 0
+        self.screen = pygame.display.set_mode(display_size, flags)
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont("consolas", 20)
-        self.big_font = pygame.font.SysFont("consolas", 40, bold=True)
+        self.font = pygame.font.SysFont("consolas", max(1, round(20 * self.scale)))
+        self.big_font = pygame.font.SysFont(
+            "consolas", max(1, round(40 * self.scale)), bold=True
+        )
 
     # ------------------------------------------------------------------
     def run(self) -> Boxer | None:
@@ -152,15 +164,15 @@ class PygameClient:
         pygame = self.pygame
         self.screen.fill(RING_COLOR)
         pygame.draw.rect(
-            self.screen, CANVAS_COLOR, pygame.Rect(60, 220, WIDTH - 120, 260)
+            self.screen, CANVAS_COLOR, self._rect(60, 220, WIDTH - 120, 260)
         )
         for offset in (0, 40, 80):
             pygame.draw.line(
                 self.screen,
                 ROPE_COLOR,
-                (60, 220 + offset),
-                (WIDTH - 60, 220 + offset),
-                3,
+                self._point(60, 220 + offset),
+                self._point(WIDTH - 60, 220 + offset),
+                max(1, round(3 * self.scale)),
             )
 
         self._draw_boxer(self.match.boxer1, self.p1_x, P1_COLOR)
@@ -171,12 +183,22 @@ class PygameClient:
     def _draw_boxer(self, boxer: Boxer, x: float, color: tuple[int, int, int]) -> None:
         pygame = self.pygame
         height = 60 if boxer.is_knocked_down else 130
-        body = pygame.Rect(int(x) - 25, FLOOR_Y - height, 50, height)
-        pygame.draw.rect(self.screen, color, body, border_radius=10)
+        body = self._rect(x - 25, FLOOR_Y - height, 50, height)
+        pygame.draw.rect(
+            self.screen, color, body, border_radius=max(1, round(10 * self.scale))
+        )
         head_y = FLOOR_Y - height - 18
-        pygame.draw.circle(self.screen, color, (int(x), head_y), 18)
+        pygame.draw.circle(
+            self.screen, color, self._point(x, head_y), max(1, round(18 * self.scale))
+        )
         if boxer.is_dodging:
-            pygame.draw.circle(self.screen, TEXT_COLOR, (int(x), head_y), 24, 2)
+            pygame.draw.circle(
+                self.screen,
+                TEXT_COLOR,
+                self._point(x, head_y),
+                max(1, round(24 * self.scale)),
+                max(1, round(2 * self.scale)),
+            )
 
     def _draw_hud(self) -> None:
         self._draw_bars(self.match.boxer1, 40, align_left=True)
@@ -185,17 +207,25 @@ class PygameClient:
         timer = self.big_font.render(
             f"{int(max(0.0, self.match.round_time_remaining)):03d}", True, TEXT_COLOR
         )
-        self.screen.blit(timer, timer.get_rect(center=(WIDTH // 2, 48)))
+        self.screen.blit(timer, timer.get_rect(center=self._point(WIDTH // 2, 48)))
         round_label = self.font.render(
             f"Round {self.match.current_round}/{self.match.total_rounds}",
             True,
             TEXT_COLOR,
         )
-        self.screen.blit(round_label, round_label.get_rect(center=(WIDTH // 2, 88)))
+        self.screen.blit(
+            round_label, round_label.get_rect(center=self._point(WIDTH // 2, 88))
+        )
 
         for index, event in enumerate(self.match.events[-3:]):
             line = self.font.render(event, True, TEXT_COLOR)
-            self.screen.blit(line, (WIDTH // 2 - line.get_width() // 2, 110 + index * 22))
+            self.screen.blit(
+                line,
+                (
+                    round(self.offset_x + WIDTH * self.scale / 2 - line.get_width() / 2),
+                    self._point(0, 110 + index * 22)[1],
+                ),
+            )
 
     def _draw_bars(self, boxer: Boxer, x: int, align_left: bool) -> None:
         pygame = self.pygame
@@ -203,26 +233,43 @@ class PygameClient:
         health_ratio = max(0.0, boxer.current_health / boxer.max_health)
         stamina_ratio = max(0.0, boxer.stamina / 100.0)
 
-        pygame.draw.rect(self.screen, HEALTH_BG, pygame.Rect(x, 30, width, 22))
+        pygame.draw.rect(self.screen, HEALTH_BG, self._rect(x, 30, width, 22))
         pygame.draw.rect(
-            self.screen, HEALTH_FG, pygame.Rect(x, 30, int(width * health_ratio), 22)
+            self.screen, HEALTH_FG, self._rect(x, 30, int(width * health_ratio), 22)
         )
-        pygame.draw.rect(self.screen, HEALTH_BG, pygame.Rect(x, 56, width, 10))
+        pygame.draw.rect(self.screen, HEALTH_BG, self._rect(x, 56, width, 10))
         pygame.draw.rect(
-            self.screen, STAMINA_FG, pygame.Rect(x, 56, int(width * stamina_ratio), 10)
+            self.screen, STAMINA_FG, self._rect(x, 56, int(width * stamina_ratio), 10)
         )
 
         label = self.font.render(
             f"{boxer.name}  {boxer.score} pts  [{boxer.rounds_won}]", True, TEXT_COLOR
         )
         rect = label.get_rect()
-        rect.topleft = (x, 72) if align_left else (x + width - rect.width, 72)
+        label_x = x if align_left else x + width - rect.width / self.scale
+        rect.topleft = self._point(label_x, 72)
         self.screen.blit(label, rect)
 
     def _draw_result(self) -> None:
         winner = self.match.winner.name if self.match.winner else "Draw"
         text = self.big_font.render(f"{winner} wins!", True, TEXT_COLOR)
-        self.screen.blit(text, text.get_rect(center=(WIDTH // 2, HEIGHT // 2)))
+        self.screen.blit(
+            text, text.get_rect(center=self._point(WIDTH // 2, HEIGHT // 2))
+        )
+
+    def _point(self, x: float, y: float) -> tuple[int, int]:
+        return (
+            round(self.offset_x + x * self.scale),
+            round(self.offset_y + y * self.scale),
+        )
+
+    def _rect(self, x: float, y: float, width: float, height: float):
+        pygame = self.pygame
+        return pygame.Rect(
+            *self._point(x, y),
+            max(1, round(width * self.scale)),
+            max(1, round(height * self.scale)),
+        )
 
 
 class MatchChannel:
@@ -294,6 +341,18 @@ def build_match(
     )
 
 
+def parse_resolution(value: str) -> tuple[int, int]:
+    try:
+        width, height = (int(part) for part in value.lower().split("x", maxsplit=1))
+    except (ValueError, TypeError):
+        raise argparse.ArgumentTypeError("resolution must be WIDTHxHEIGHT") from None
+    if width < WIDTH or height < HEIGHT or width > 7680 or height > 4320:
+        raise argparse.ArgumentTypeError(
+            "resolution must be between 960x540 and 7680x4320"
+        )
+    return width, height
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Cris Cyborg Boxing 89 (pygame)")
     parser.add_argument("--name", default="Challenger")
@@ -306,6 +365,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--server", help="Base URL of the online server")
     parser.add_argument("--private-key", help="Dev key used to sign the login challenge")
     parser.add_argument("--match", help="Match id to play online")
+    parser.add_argument(
+        "--resolution",
+        type=parse_resolution,
+        help="Window resolution, for example 2560x1440 or 3840x2160",
+    )
+    parser.add_argument("--fullscreen", action="store_true")
     args = parser.parse_args(argv)
 
     difficulty = Difficulty(args.difficulty)
@@ -331,7 +396,9 @@ def main(argv: list[str] | None = None) -> int:
         net.start()
         ai = None
 
-    client = PygameClient(match, ai=ai, net=net)
+    client = PygameClient(
+        match, ai=ai, net=net, display_size=args.resolution, fullscreen=args.fullscreen
+    )
     winner = client.run()
 
     if net is not None:

@@ -19,7 +19,56 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build-desktop:
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            package: Chromebook-Linux
+          - os: windows-latest
+            package: Windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install packaging dependencies
+        run: python -m pip install -r python/requirements-package.txt
+
+      - name: Build Windows executable
+        if: runner.os == 'Windows'
+        working-directory: python
+        run: pyinstaller --noconfirm --clean --onefile --windowed --name CrisCyborgBoxing89 --collect-all pygame launcher.py
+
+      - name: Build Chromebook Linux executable
+        if: runner.os == 'Linux'
+        working-directory: python
+        run: pyinstaller --noconfirm --clean --onefile --name CrisCyborgBoxing89 --collect-all pygame launcher.py
+
+      - name: Archive Windows build
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path python/dist/CrisCyborgBoxing89.exe -DestinationPath CrisCyborgBoxing89-Windows.zip
+
+      - name: Archive Chromebook Linux build
+        if: runner.os == 'Linux'
+        run: tar -czf CrisCyborgBoxing89-Chromebook-Linux.tar.gz -C python/dist CrisCyborgBoxing89
+
+      - name: Upload desktop build
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrisCyborgBoxing89-${{ matrix.package }}
+          path: CrisCyborgBoxing89-${{ matrix.package }}.*
+          if-no-files-found: error
+
   deploy:
+    needs: build-desktop
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -27,6 +76,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download Windows build
+        uses: actions/download-artifact@v4.1.3
+        with:
+          name: CrisCyborgBoxing89-Windows
+          path: docs/downloads
+
+      - name: Download Chromebook Linux build
+        uses: actions/download-artifact@v4.1.3
+        with:
+          name: CrisCyborgBoxing89-Chromebook-Linux
+          path: docs/downloads
 
       - name: Package Python game download
         run: |

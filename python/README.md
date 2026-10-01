@@ -68,8 +68,13 @@ Offline practice bout (no server required):
 
 ```sh
 python -m criscyborg.client.pygame_client --difficulty Expert
+python -m criscyborg.client.pygame_client --resolution 3840x2160 --fullscreen
 python -m criscyborg.client.terminal practice --difficulty Hard
 ```
+
+The Pygame renderer scales its 2D graphics for high-resolution displays. The
+GitHub Pages site also offers standalone Windows and Chromebook Linux builds;
+the latter runs in the 64-bit Chromebook Linux development environment.
 
 Controls: `A`/`D` move, `J` jab, `K` hook, `L` special, `Space` dodge, `Esc` quit.
 Bouts are three 120 second rounds; a knockout ends the fight immediately,

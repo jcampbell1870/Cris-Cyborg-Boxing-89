@@ -51,12 +51,14 @@ manager in production, never committed to source control).
 ## Downloading the game
 
 The [GitHub Pages site](docs/index.html) (published from the `docs/` folder,
-see [`.github/workflows/pages.yml`](.github/workflows/pages.yml)) provides a
-downloadable ZIP of the Python desktop game. Extract it, enter the `python/`
-directory, and follow the install/run instructions on the site. The ZIP
-contains the Python source and is not a packaged Unreal Engine executable;
-packaged Unreal builds, if published, are listed on the
-[Releases](../../releases) page.
+see [`.github/workflows/pages.yml`](.github/workflows/pages.yml)) provides
+standalone Windows 10/11 (64-bit) and Chromebook Linux (64-bit Intel/AMD)
+downloads, as well as the Python source ZIP. The Chromebook build requires the
+ChromeOS Linux development environment; it does not run in the browser. The
+Pygame practice game supports custom 1440p and 4K resolutions. These are
+standalone 2D builds, not packaged Unreal Engine games; the Unreal project
+remains source-only, and packaged Unreal builds, if published, are listed on
+the [Releases](../../releases) page.
 
 ## Microsoft Store version
 
