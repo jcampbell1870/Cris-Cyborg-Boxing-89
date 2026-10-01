@@ -21,6 +21,7 @@ from decimal import Decimal
 from typing import Any
 
 from .models import (
+    ChampionshipBelt,
     Match,
     MatchState,
     Player,
@@ -225,6 +226,8 @@ class OnlineCompetitionService:
 
     def _advance_tournament(self, tournament: Tournament) -> None:
         """Build the next bracket round once the current round is complete."""
+        if tournament.status is not TournamentStatus.IN_PROGRESS:
+            return
         current_round = tournament.rounds[-1]
         matches = [self._matches[mid] for mid in current_round]
         if any(m.state is not MatchState.COMPLETED for m in matches):
@@ -233,6 +236,11 @@ class OnlineCompetitionService:
         winners = [m.winner for m in matches if m.winner]
         if len(winners) == 1:
             tournament.champion = winners[0]
+            belt = ChampionshipBelt(tournament.id, tournament.name)
+            tournament.championship_belt = belt
+            champion = self.get_player(winners[0])
+            if champion:
+                champion.championship_belts.append(belt)
             tournament.status = TournamentStatus.COMPLETED
             tournament.ended_at = now_ts()
             return
