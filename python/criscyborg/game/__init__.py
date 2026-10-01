@@ -1,4 +1,4 @@
-"""Gameplay simulation for Cris Cyborg Boxing 89."""
+"""Gameplay simulation for Cris Cyborg Boxing."""
 
 from .ai import BoxerAI
 from .engine import Action, Boxer, BoxingMatch, GameState

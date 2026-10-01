@@ -1,4 +1,4 @@
-"""HTTP/WebSocket client for the Cris Cyborg Boxing 89 online services."""
+"""HTTP/WebSocket client for the Cris Cyborg Boxing online services."""
 
 from __future__ import annotations
 

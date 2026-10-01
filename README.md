@@ -1,4 +1,4 @@
-# Cris Cyborg Boxing 89
+# Cris Cyborg Boxing
 
 A 2D boxing game built with Unreal Engine 5.3 for **Windows PC (Win64)**,
 featuring online matchmaking, tournaments, and play-to-earn rewards in
@@ -52,13 +52,10 @@ manager in production, never committed to source control).
 
 The [GitHub Pages site](docs/index.html) (published from the `docs/` folder,
 see [`.github/workflows/pages.yml`](.github/workflows/pages.yml)) provides
-standalone Windows 10/11 (64-bit) and Chromebook Linux (64-bit Intel/AMD)
-downloads, as well as the Python source ZIP. The Chromebook build requires the
-ChromeOS Linux development environment; it does not run in the browser. The
-Pygame practice game supports custom 1440p and 4K resolutions. These are
-standalone 2D builds, not packaged Unreal Engine games; the Unreal project
-remains source-only, and packaged Unreal builds, if published, are listed on
-the [Releases](../../releases) page.
+two standalone downloads: Windows 10/11 (64-bit) and Chromebook Linux (64-bit
+Intel/AMD). The Chromebook build requires the ChromeOS Linux development
+environment; it does not run in the browser. These are standalone 2D builds,
+not packaged Unreal Engine games; the Unreal project remains source-only.
 
 ## Microsoft Store version
 

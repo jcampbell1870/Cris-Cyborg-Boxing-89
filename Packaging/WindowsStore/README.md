@@ -1,6 +1,6 @@
 # Windows Store (MSIX) packaging
 
-Cris Cyborg Boxing 89 is a Win64 (Windows 10/11, 64-bit) Unreal Engine game.
+Cris Cyborg Boxing is a Win64 (Windows 10/11, 64-bit) Unreal Engine game.
 This folder contains the scaffolding needed to package a built copy of the
 game as an MSIX package for submission to the Microsoft Store, alongside the
 free downloadable ZIP published from the [GitHub Pages site](../../docs).
@@ -24,7 +24,7 @@ This produces a packaged build under
 
 1. Create/sign in to a [Microsoft Partner Center](https://partner.microsoft.com/dashboard)
    developer account.
-2. Reserve the app name "Cris Cyborg Boxing 89" under **Apps and games > New product**.
+2. Reserve the app name "Cris Cyborg Boxing" under **Apps and games > New product**.
 3. Under **App identity**, copy the generated **Package/Identity/Name** and
    **Publisher ID** values.
 4. Update [`Package.appxmanifest`](Package.appxmanifest) `Identity/@Name` and
@@ -43,7 +43,7 @@ then run:
 ```powershell
 Packaging\WindowsStore\Build-MsixPackage.ps1 `
   -BuildDirectory "Packaging\Output\Windows\CrisCyborgBoxing\Binaries\Win64" `
-  -OutputPackage "Packaging\Output\CrisCyborgBoxing89.msix"
+  -OutputPackage "Packaging\Output\CrisCyborgBoxing.msix"
 ```
 
 Add `-CertificatePath` with a `.pfx` code-signing certificate if you want to

@@ -32,7 +32,7 @@ def generate_auth_message(nonce: str | None = None) -> str:
     """Build the message a player signs to log in."""
     nonce = nonce or secrets.token_hex(16)
     return (
-        "Welcome to Cris Cyborg Boxing 89!\n\n"
+        "Welcome to Cris Cyborg Boxing!\n\n"
         "Sign this message to verify your wallet. "
         "This request will not trigger a blockchain transaction "
         "or cost any gas.\n\n"

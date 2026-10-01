@@ -1,4 +1,4 @@
-# Cris Cyborg Boxing 89 - Python 3
+# Cris Cyborg Boxing - Python 3
 
 The Python 3 rewrite of the game: the boxing engine, the online lobby with
 one-vs-one tables and eight-max sit-and-go tournaments (GG Poker style), and

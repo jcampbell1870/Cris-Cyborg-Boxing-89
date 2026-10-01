@@ -1,4 +1,4 @@
-"""Domain models for Cris Cyborg Boxing 89 (Python 3 rewrite)."""
+"""Domain models for Cris Cyborg Boxing (Python 3 rewrite)."""
 
 from __future__ import annotations
 
