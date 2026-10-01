@@ -49,6 +49,20 @@ class Difficulty(str, Enum):
 
 
 @dataclass
+class ChampionshipBelt:
+    tournament_id: str
+    tournament_name: str
+    awarded_at: float = field(default_factory=now_ts)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "tournamentId": self.tournament_id,
+            "tournamentName": self.tournament_name,
+            "awardedAt": self.awarded_at,
+        }
+
+
+@dataclass
 class Player:
     """A wallet-identified player. Identity is the MetaMask address."""
 
@@ -57,6 +71,7 @@ class Player:
     skill_level: int = 5
     wins: int = 0
     losses: int = 0
+    championship_belts: list[ChampionshipBelt] = field(default_factory=list)
     created_at: float = field(default_factory=now_ts)
     last_login_at: float = field(default_factory=now_ts)
     is_active: bool = True
@@ -73,6 +88,7 @@ class Player:
             "wins": self.wins,
             "losses": self.losses,
             "elo": self.elo,
+            "championshipBelts": [belt.to_dict() for belt in self.championship_belts],
         }
 
 
@@ -140,6 +156,7 @@ class Tournament:
     entrants: list[str] = field(default_factory=list)
     rounds: list[list[str]] = field(default_factory=list)  # match ids per round
     champion: str | None = None
+    championship_belt: ChampionshipBelt | None = None
     prize_pool: Decimal = Decimal(0)
     created_at: float = field(default_factory=now_ts)
     started_at: float | None = None
@@ -163,6 +180,9 @@ class Tournament:
             "entrants": list(self.entrants),
             "rounds": [list(r) for r in self.rounds],
             "champion": self.champion,
+            "championshipBelt": (
+                self.championship_belt.to_dict() if self.championship_belt else None
+            ),
             "prizePool": str(self.prize_pool),
             "createdAt": self.created_at,
             "startedAt": self.started_at,

@@ -148,8 +148,39 @@ def test_full_bracket_plays_down_to_a_champion() -> None:
     assert tournament.status is TournamentStatus.COMPLETED
     assert tournament.champion is not None
     assert len(tournament.rounds) == 3
+    belt = tournament.to_dict()["championshipBelt"]
+    assert belt["tournamentId"] == tournament.id
+    assert belt["tournamentName"] == tournament.name
+    assert service.get_player(tournament.champion).to_dict()["championshipBelts"] == [belt]
+    assert service.describe_tournament(tournament)["championshipBelt"] == belt
+    assert service.lobby()["tournaments"][0]["championshipBelt"] == belt
+    for address in addresses:
+        if address != tournament.champion:
+            assert service.get_player(address).championship_belts == []
     # Every completed bout, including the final, pays its flat ARC claim.
     assert len(service.reward_issuer.for_recipient(tournament.champion)) == 3
+    with pytest.raises(LobbyError):
+        final = tournament.rounds[-1][0]
+        service.report_winner(final, tournament.champion, tournament.champion)
+    service._advance_tournament(tournament)
+    assert len(service.get_player(tournament.champion).championship_belts) == 1
+
+
+def test_no_belt_for_incomplete_tournament_or_heads_up_win() -> None:
+    service = make_service()
+    addresses = seat_players(service, 8)
+    tournament = service.create_tournament(addresses[0])
+    for address in addresses[1:]:
+        service.register_in_tournament(tournament.id, address)
+    first = service.get_match(tournament.rounds[0][0])
+    service.report_winner(first.id, first.player1, first.player1)
+    assert tournament.championship_belt is None
+    assert all(not service.get_player(address).championship_belts for address in addresses)
+
+    match = service.create_heads_up_match(addresses[0])
+    service.join_heads_up_match(match.id, addresses[1])
+    service.report_winner(match.id, addresses[0], addresses[0])
+    assert service.get_player(addresses[0]).championship_belts == []
 
 
 def test_unregister_before_start_frees_the_seat() -> None:

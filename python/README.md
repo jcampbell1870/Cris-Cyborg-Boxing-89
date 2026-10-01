@@ -105,6 +105,12 @@ scheme) on every later call.
 The sit-and-go auto-starts the moment the eighth seat is filled: entrants are
 shuffled, seated into four quarter-finals, and winners advance through a
 semi-final and a final until one champion remains.
+On completion, the champion is awarded an in-game Championship Belt for that
+tournament. The belt appears on the champion's player profile
+(`GET /api/players/me`) and in the tournament and lobby responses as
+`championshipBelt`; it is separate from the per-bout ARC claims. Like the
+current lobby and tournament records, belts are held in server memory and do
+not survive a server restart.
 
 ## Reward flow
 

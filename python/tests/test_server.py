@@ -109,15 +109,17 @@ def test_heads_up_flow_pays_an_arcade1870_claim(client: TestClient) -> None:
 
 
 def test_eight_max_sit_and_go_fills_and_starts(client: TestClient) -> None:
-    _, host_token = login(client, 3, "Host")
+    host_address, host_token = login(client, 3, "Host")
     tournament = client.post(
         "/api/tournaments", json={"name": "Nightly 8-Max"}, headers=auth(host_token)
     ).json()
     assert tournament["seatLimit"] == 8
     assert tournament["status"] == "Registration"
 
+    tokens = {host_address: host_token}
     for key_byte in range(4, 11):
-        _, token = login(client, key_byte, f"Boxer{key_byte}")
+        address, token = login(client, key_byte, f"Boxer{key_byte}")
+        tokens[address] = token
         tournament = client.post(
             f"/api/tournaments/{tournament['id']}/register", headers=auth(token)
         ).json()
@@ -128,6 +130,27 @@ def test_eight_max_sit_and_go_fills_and_starts(client: TestClient) -> None:
 
     lobby = client.get("/api/lobby").json()
     assert lobby["tournaments"][0]["id"] == tournament["id"]
+    assert tournament["championshipBelt"] is None
+
+    for round_index in range(3):
+        tournament = client.get(f"/api/tournaments/{tournament['id']}").json()
+        for match in tournament["bracket"][round_index]:
+            result = client.post(
+                f"/api/matches/{match['id']}/result",
+                json={"winner": match["player1"]},
+                headers=auth(tokens[match["player1"]]),
+            )
+            assert result.status_code == 200, result.text
+
+    tournament = client.get(f"/api/tournaments/{tournament['id']}").json()
+    assert tournament["status"] == "Completed"
+    belt = tournament["championshipBelt"]
+    assert belt["tournamentId"] == tournament["id"]
+    assert belt["tournamentName"] == "Nightly 8-Max"
+    assert client.get("/api/lobby").json()["tournaments"][0]["championshipBelt"] == belt
+    for address, token in tokens.items():
+        player = client.get("/api/players/me", headers=auth(token)).json()
+        assert player["championshipBelts"] == ([belt] if address == tournament["champion"] else [])
 
 
 def test_reward_config_exposes_shared_vault(client: TestClient) -> None:
